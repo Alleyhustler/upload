@@ -615,13 +615,13 @@
 
       try {
         const filePath = `${Date.now()}-${file.name}`;
-        const { error: uploadError } = await client.storage.from('wins').upload(filePath, file);
+        const { error: uploadError } = await client.storage.from('posts').upload(filePath, file);
         
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = client.storage.from('wins').getPublicUrl(filePath);
-        const { error: insertError } = await client.from('wins').insert([
-          { twitter_handle: cleanHandle, image_url: urlData.publicUrl }
+        const { data: urlData } = client.storage.from('posts').getPublicUrl(filePath);
+        const { error: insertError } = await client.from('posts').insert([
+          { handle: cleanHandle, image_url: urlData.publicUrl }
         ]);
         
         if (insertError) throw insertError;
@@ -645,7 +645,7 @@
 
     async function fetchPosts() {
       try {
-        const { data, error } = await client.from('wins').select('*').order('created_at', { ascending: false });
+        const { data, error } = await client.from('posts').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         
         posts = data;
@@ -672,7 +672,7 @@
           <div class="post-card">
             <img src="${post.image_url}" alt="Win" class="post-image" loading="lazy">
             <div class="post-content">
-              <div class="post-handle">${post.twitter_handle}</div>
+              <div class="post-handle">${post.handle}</div>
               <a href="${tweetUrl}" target="_blank" class="share-btn">
                 <svg class="share-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
@@ -689,7 +689,7 @@
       const list = document.getElementById('submissionsList');
       list.innerHTML = posts.map((post, index) => `
         <div class="submission-item ${selectedSubmission && selectedSubmission.id === post.id ? 'selected' : ''}" onclick="selectSubmission(${index})" data-id="${post.id}">
-          <div class="submission-handle">${post.twitter_handle}</div>
+          <div class="submission-handle">${post.handle}</div>
           <div class="submission-time">${new Date(post.created_at).toLocaleDateString()}</div>
           <div class="admin-indicator"></div>
         </div>
@@ -704,7 +704,7 @@
       
       if (isAdmin) {
         document.getElementById('selectedSubmissionActions').style.display = 'block';
-        document.getElementById('selectedHandle').textContent = selectedSubmission.twitter_handle;
+        document.getElementById('selectedHandle').textContent = selectedSubmission.handle;
       }
     }
 
@@ -725,7 +725,7 @@
         
         if (selectedSubmission) {
           document.getElementById('selectedSubmissionActions').style.display = 'block';
-          document.getElementById('selectedHandle').textContent = selectedSubmission.twitter_handle;
+          document.getElementById('selectedHandle').textContent = selectedSubmission.handle;
         }
       } else {
         showStatus('Invalid password', 'error');
@@ -747,11 +747,11 @@
       
       try {
         // Reset all top traders first
-        const { error: resetError } = await client.from('wins').update({ is_top_trader: false }).neq('id', 0);
+        const { error: resetError } = await client.from('posts').update({ is_top_trader: false }).neq('id', 0);
         if (resetError) throw resetError;
 
         // Set new top trader
-        const { error } = await client.from('wins').update({ is_top_trader: true }).eq('twitter_handle', cleanHandle);
+        const { error } = await client.from('posts').update({ is_top_trader: true }).eq('handle', cleanHandle);
         if (error) throw error;
         
         await fetchTopTrader();
@@ -771,7 +771,7 @@
       if (!confirm('Delete this submission?')) return;
 
       try {
-        const { error } = await client.from('wins').delete().eq('id', selectedSubmission.id);
+        const { error } = await client.from('posts').delete().eq('id', selectedSubmission.id);
         if (error) throw error;
         
         selectedSubmission = null;
@@ -791,11 +791,11 @@
 
       try {
         // Reset all top traders first
-        const { error: resetError } = await client.from('wins').update({ is_top_trader: false }).neq('id', 0);
+        const { error: resetError } = await client.from('posts').update({ is_top_trader: false }).neq('id', 0);
         if (resetError) throw resetError;
 
         // Promote selected submission
-        const { error } = await client.from('wins').update({ is_top_trader: true }).eq('id', selectedSubmission.id);
+        const { error } = await client.from('posts').update({ is_top_trader: true }).eq('id', selectedSubmission.id);
         if (error) throw error;
         
         await fetchTopTrader();
@@ -807,13 +807,13 @@
 
     async function fetchTopTrader() {
       try {
-        const { data, error } = await client.from('wins').select('*').eq('is_top_trader', true).limit(1);
+        const { data, error } = await client.from('posts').select('*').eq('is_top_trader', true).limit(1);
         const section = document.getElementById('topTrader');
         
         if (error || data.length === 0) {
           section.querySelector('.top-trader-handle').textContent = 'None';
         } else {
-          section.querySelector('.top-trader-handle').textContent = data[0].twitter_handle;
+          section.querySelector('.top-trader-handle').textContent = data[0].handle;
         }
       } catch (error) {
         document.getElementById('topTrader').querySelector('.top-trader-handle').textContent = 'Error';
